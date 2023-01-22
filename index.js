@@ -5,13 +5,15 @@ const cookieParser = require("cookie-parser");
 
 const ejs = require("ejs");
 const app = express();
+app.use(express.static("public"));
 app.set('view engine', 'ejs');
+
 app.use(session({
     secret: 'secret-word',
     saveUninitialized: false,
     resave: false
 }));
-
+require('dotenv').config()
 const port = 3000;
 app.listen(port, () => console.log('App listening on port ' + port));
 
@@ -33,16 +35,14 @@ passport.deserializeUser((user, done) => {
 /*  Google AUTH  */
 
 const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
-const GOOGLE_CLIENT_ID = 'removed_for_security_purpose';
-const GOOGLE_CLIENT_SECRET = 'removed_for_security_purpose';
 
 authUser = (request, accessToken, refreshToken, profile, done) => {
     userProfile = profile;
     return done(null, userProfile);
 }
 passport.use(new GoogleStrategy({
-    clientID: GOOGLE_CLIENT_ID,
-    clientSecret: GOOGLE_CLIENT_SECRET,
+    clientID: process.env.CLIENT_ID,
+    clientSecret: process.env.CLIENT_SECRET,
     callbackURL: "http://localhost:3000/auth/google/callback",
     passReqToCallback: true
 }, authUser));
@@ -61,11 +61,11 @@ checkAuthenticated = (req, res, next) => {
     res.redirect('/')
 }
 app.get('/', (req, res) => {
-    res.render('pages/auth');
+    res.render('auth');
 });
 
 app.get('/success', checkAuthenticated, (req, res) => {
-    res.render('pages/success', { user: userProfile });
+    res.render('success', { user: userProfile });
 });
 
 app.get('/error', (req, res) => res.send("error logging in"));
