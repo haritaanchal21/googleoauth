@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser");
 
 const ejs = require("ejs");
 const app = express();
+app.use(express.static("public"));
 app.set('view engine', 'ejs');
 app.use(session({
     secret: 'secret-word',
@@ -33,8 +34,8 @@ passport.deserializeUser((user, done) => {
 /*  Google AUTH  */
 
 const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
-const GOOGLE_CLIENT_ID = 'removed_for_security_purpose';
-const GOOGLE_CLIENT_SECRET = 'removed_for_security_purpose';
+const GOOGLE_CLIENT_ID = '970422320694-h1d88gp3bo09gkq45ieo3oeg4hvq9sb0.apps.googleusercontent.com';
+const GOOGLE_CLIENT_SECRET = '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';
 
 authUser = (request, accessToken, refreshToken, profile, done) => {
     userProfile = profile;
@@ -61,11 +62,11 @@ checkAuthenticated = (req, res, next) => {
     res.redirect('/')
 }
 app.get('/', (req, res) => {
-    res.render('pages/auth');
+    res.render('auth');
 });
 
 app.get('/success', checkAuthenticated, (req, res) => {
-    res.render('pages/success', { user: userProfile });
+    res.render('success', { user: userProfile });
 });
 
 app.get('/error', (req, res) => res.send("error logging in"));
