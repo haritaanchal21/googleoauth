@@ -2,11 +2,16 @@
 const express = require('express');
 const session = require('express-session');
 const cookieParser = require("cookie-parser");
+const bodyParser = require("body-parser");
 
 const ejs = require("ejs");
 const app = express();
+
 app.use(express.static("public"));
 app.set('view engine', 'ejs');
+app.use(bodyParser.urlencoded({
+    extended: true
+}));
 
 app.use(session({
     secret: 'secret-word',

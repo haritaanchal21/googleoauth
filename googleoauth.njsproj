@@ -31,10 +31,14 @@
     <Content Include=".env" />
     <Content Include="index.js" />
     <Content Include="package.json" />
+    <Content Include="public\css\bootstrap-social.css" />
+    <Content Include="public\css\styles.css" />
     <Content Include="README.md" />
     <Content Include="views\auth.ejs" />
     <Content Include="views\files.ejs" />
     <Content Include="public\css\login.css" />
+    <Content Include="views\partials\footer.ejs" />
+    <Content Include="views\partials\header.ejs" />
     <Content Include="views\success.ejs" />
   </ItemGroup>
   <ItemGroup>
@@ -43,6 +47,7 @@
     <Folder Include="views\" />
     <Folder Include="public\" />
     <Folder Include="public\css\" />
+    <Folder Include="views\partials\" />
   </ItemGroup>
   <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsToolsV2.targets" />
 </Project>
