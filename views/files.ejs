@@ -1,11 +1,43 @@
-<html>
-<h1>Uploaded Files</h1>
-<ul>
-    <% for (var i = 0; i < files.length; i++) { %>
-         <li><a href="/download/<%= files[i] %>"><%= files[i] %></a></li>
-    <% } %>
-</ul>
-	<form action="/success">
-		<input type="submit" value="home">
-                    </form>
-</html>
+<%- include('partials/header') %>
+
+<div class="jumbotron centered">
+    <table class="table">
+      <thead class="thead-dark">
+        <tr>
+          <th scope="col">Sl No.</th>
+          <th scope="col">File Name</th>
+          <th scope="col">File Path</th>
+          <th scope="col">File Type</th>
+          <th scope="col">Created On</th>
+          <th scope="col">Last Modified</th>
+        </tr>
+      </thead>
+      <% for(let i=0; i<files.length; i++) { %>
+        <tr>
+          <th scope="row">
+            <%=i+1%>
+          </th>
+          <td style="text-align: left">
+            <a href="/download/<%= files[i].fileName %>"><%= files[i].fileName %></a>
+          </td>
+          <td style="text-align: left">
+            <a href="/download/<%= files[i].fileName %>"><%= files[i].filePath %></a>
+          </td>
+          
+          <td style="text-align: left">
+            <%= files[i].fileType %>
+          </td>
+          <td style="text-align: left">
+            <%= files[i].fileCreate.toLocaleString() %>
+          </td>
+          <td style="text-align: left">
+            <%= files[i].lastModified.toLocaleString() %>
+          </td>
+        </tr>
+        <% } %>
+          <tbody>
+          </tbody>
+    </table>
+  </div>
+
+<%- include('partials/footer') %>

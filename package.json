@@ -9,6 +9,8 @@
   "devDependencies": {
     "eslint": "^8.21.0"
   },
-  "eslintConfig": {
+  "eslintConfig": {},
+  "dependencies": {
+    "nodemon": "^2.0.20"
   }
 }

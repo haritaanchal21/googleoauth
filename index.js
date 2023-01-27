@@ -3,7 +3,8 @@ const express = require('express');
 const session = require('express-session');
 const cookieParser = require("cookie-parser");
 const bodyParser = require("body-parser");
-
+const mime = require('mime-types');
+const fs = require('fs');
 const ejs = require("ejs");
 const app = express();
 
@@ -24,7 +25,6 @@ app.listen(port, () => console.log('App listening on port ' + port));
 
 
 var passport = require('passport');
-var userProfile;
 app.use(cookieParser());
 app.use(passport.initialize());
 app.use(passport.session());
@@ -42,8 +42,7 @@ passport.deserializeUser((user, done) => {
 const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
 authUser = (request, accessToken, refreshToken, profile, done) => {
-    userProfile = profile;
-    return done(null, userProfile);
+    return done(null, profile);
 }
 passport.use(new GoogleStrategy({
     clientID: process.env.CLIENT_ID,
@@ -69,63 +68,94 @@ app.get('/', (req, res) => {
     res.render('auth');
 });
 
-app.get('/success', checkAuthenticated, (req, res) => {
-    res.render('success', { user: userProfile });
+app.get('/success', checkAuthenticated, async (req, res) => {
+    if (!req.session.user) {
+        req.session.user = { id: req.user.id ,name: req.user.displayName, email: req.user.emails[0].value, errorMessage: '' };
+    }
+    if (!fs.existsSync("./uploads")) {
+        fs.mkdirSync("./uploads");
+    }
+    const dir = `./uploads/${req.session.user.id}/`;
+    if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir);
+    }
+    try {
+        const allfiles = await fs.promises.readdir(dir);
+        const files = [];
+        for (let file of allfiles) {
+            const filePath = path.join(dir, file);
+            const stats = await fs.promises.stat(filePath);
+            files.push({
+                fileName: file,     
+                filePath,
+                fileType: mime.lookup(file),
+                fileCreate: stats.ctime,
+                lastModified: stats.mtime
+            });
+        }
+        const user = { id: req.user.id ,name: req.user.displayName, email: req.user.emails[0].value };
+        const errorMessage = req.session.user.errorMessage;
+        req.session.user.errorMessage = "";
+        res.render('success', { user, files,errorMessage});
+    } catch (err) {
+        console.log(err);
+        return res.status(500).send(err);
+    }
+    
 });
-
-app.get('/error', (req, res) => res.send("error logging in"));
-
 
 //upload file
 const multer = require('multer');
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        const dir = `./uploads/${userProfile.id}/`;
+        if (!fs.existsSync("./uploads")) {
+            fs.mkdirSync("./uploads");
+        }
+        const dir = `./uploads/${req.session.user.id}/`;
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir);
         }
         cb(null, dir);
     },
     filename: function (req, file, cb) {
+        const dir = `./uploads/${req.session.user.id}/`;
+        const filePath = `${dir}/${file.originalname}`;
+        if (fs.existsSync(filePath)) {
+            cb(new Error("file already exist"));
+        }
         cb(null, file.originalname);
-    }
+    }   
 });
 
 const upload = multer({ storage: storage});
-app.post('/upload', upload.single('file'), (req, res) => {
-    // req.file contains information about the uploaded file
-    // req.body contains other form fields
-    console.log(req.file);
-    //app.alert('File uploaded!');
-    res.redirect('/success');
+const uploadSingleImage = upload.single('file');
+app.post('/upload', function (req, res) {
+
+    uploadSingleImage(req, res, function (err) {
+
+        if (err) {
+            req.session.user.errorMessage = err.message;
+        }
+
+        // Everything went fine.
+        res.redirect("/success");
+    })
 });
 
 
-//list file
-const fs = require('fs');
-app.get('/files', (req, res) => {
-    const dir = `./uploads/${userProfile.id}/`;
-    if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir);
-    }
-    fs.readdir(dir, (err, files) => {
-        if (err) {
-            console.log(err);
-            return res.status(500).send(err);
-        }
-        res.render('files', { files: files });
-    });
-}); 
-        
-
-
 //download onclick
-var path = require('path');
-app.get('/download/:file(*)', (req, res) => {
+const path = require('path');
+app.get('/download/:file(*)', passport.authenticate('google', { scope: ['profile', 'email'] },{ failureRedirect: '/error' }), async (req, res) => {
+    res.redirect('/error')
+    console.log("hello worldf")
     var file = req.params.file;
-    const dir = `./uploads/${userProfile.id}/`;
+    const dir = `./uploads/${req.session.user.id}/`;
     var fileLocation = path.join(dir, file);
-    res.download(fileLocation, file);
+    if(fs.existsSync(fileLocation)){
+        res.download(fileLocation, file);
+    } else {
+        res.status(404).send('File not found');
+    }
 });
 
 //logout
