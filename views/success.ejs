@@ -1,72 +1,112 @@
 <%- include('partials/header') %>
-    <% if (errorMessage) { %>
+  <% if (errorMessage) { %>
     <div>
       <script>alert("<%= errorMessage %>")</script>
     </div>
     <% } %>
-  
-  <div class="jumbotron centered">
-    <a class="btn btn-dark btn-lg" href="/logout" role="button" style="float:right">Logout</a>
-      <i class="fas fa-key fa-6x"></i>
-      <h1 class="display-3">Welcome <%= user.name %></h1>
-      <hr>
-      <br>
-      <br>
-      <form action="/upload" method="POST" enctype="multipart/form-data">
-        <div class="form-group" style="float:left">
-            <div style="position: absolute; top: 40%; left: 12.5%; transform: translate(-50%, -50%);">
-                <label for="insert file" style="float:left">Upload file</label><br>
-            <input type="file" name="file" style="float:left"><br><br>
-        <button type="submit" class="btn btn-dark" style="float:left"> Upload </button>
-    </div>
-    </div>
-      </form>
-      <div style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);">
-        <h2 class="display-3" >Uploaded files</h2>
-      </div>
-      <br>
-      <br>
+
       <div class="jumbotron centered">
-        <table class="table">
-          <thead class="thead-dark">
-            <tr>
-              <th scope="col">Sl No.</th>
-              <th scope="col">File Name</th>
-              <th scope="col">File Path</th>
-              <th scope="col">File Type</th>
-              <th scope="col">Created On</th>
-              <th scope="col">Last Modified</th>
-            </tr>
-          </thead>
-          <% for(let i=0; i<files.length; i++) { %>
-            <tr>
-              <th scope="row">
-                <%=i+1%>
-              </th>
-              <td style="text-align: left">
-                <a href="/download/<%= files[i].fileName %>"><%= files[i].fileName %></a>
-              </td>
-              <td style="text-align: left">
-                <a href="/download/<%= files[i].fileName %>"><%= files[i].filePath %></a>
-              </td>
-              
-              <td style="text-align: left">
-                <%= files[i].fileType %>
-              </td>
-              <td style="text-align: left">
-                <%= files[i].fileCreate.toLocaleString() %>
-              </td>
-              <td style="text-align: left">
-                <%= files[i].lastModified.toLocaleString() %>
-              </td>
-            </tr>
-            <% } %>
-              <tbody>
-              </tbody>
-        </table>      
+        <a class="btn btn-dark btn-lg" href="/logout" role="button" style="float:right">Logout</a>
+        <i class="fas fa-key fa-6x"></i>
+        <h1 class="display-3">Welcome <%= user.name %>
+        </h1>
         <hr>
-  </div>
-</div>
+        <br>
+        <br>
+        <form id="image-form" enctype="multipart/form-data">
+          <div class="form-group" style="float:left">
+            <div style="position: absolute; top: 40%; left: 12.5%; transform: translate(-50%, -50%);">
+              <label for="insert file" style="float:left">Upload a new file</label><br>
+              <input type="file" name="file" style="float:left"><br><br>
+              <div id="message"></div><br><br>
+              <button type="submit" class="btn btn-dark" style="float:left"> Upload </button>
+            </div>
+          </div>
+        </form>
+        <script>
+          document.getElementById('image-form').addEventListener('submit', function (event) {
+            event.preventDefault();
+
+            var formData = new FormData(this);
+
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/upload', true);
+
+            xhr.onload = function () {
+              var data = JSON.parse(xhr.responseText);
+              if (xhr.status === 200) {
+                // Store the data in sessionStorage
+                sessionStorage.setItem('message', data.message);
+              } else {
+                // Store the error in sessionStorage
+                sessionStorage.setItem('message', data.error ? data.error : '');
+              }
+              // Reload the page
+              location.reload(true);
+            };
+
+            xhr.send(formData);
+          });
+
+          // Retrieve the data after reloading the page
+          window.addEventListener('load', function () {
+            var message = sessionStorage.getItem('message');
+            document.getElementById('message').innerHTML = message;
+            sessionStorage.setItem('message', '');
+          });
+
+        </script>
+
+        <div style="position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%);">
+          <h2 class="display-3">Uploaded files</h2>
+        </div>
+        <br>
+        <br>
+        <div class="jumbotron centered">
+          <table class="table">
+            <thead class="thead-dark">
+              <tr>
+                <th scope="col">Sl No.</th>
+                <th scope="col">File Name</th>
+                <th scope="col">File Path</th>
+                <th scope="col">File Type</th>
+                <th scope="col">Created On</th>
+                <th scope="col">Last Modified</th>
+              </tr>
+            </thead>
+            <% for(let i=0; i<files.length; i++) { %>
+              <tr>
+                <th scope="row">
+                  <%=i+1%>
+                </th>
+                <td style="text-align: left">
+                  <a href="/download/<%= files[i].fileName %>">
+                    <%= files[i].fileName %>
+                  </a>
+                </td>
+                <td style="text-align: left">
+                  <a href="/download/<%= files[i].fileName %>">
+                    <%= files[i].filePath %>
+                  </a>
+                </td>
+
+                <td style="text-align: left">
+                  <%= files[i].fileType %>
+                </td>
+                <td style="text-align: left">
+                  <%= files[i].fileCreate.toLocaleString() %>
+                </td>
+                <td style="text-align: left">
+                  <%= files[i].lastModified.toLocaleString() %>
+                </td>
+              </tr>
+              <% } %>
+                <tbody>
+                </tbody>
+          </table>
+          <hr>
+        </div>
+      </div>
 
 
-  <%- include('partials/footer') %>
+      <%- include('partials/footer') %>
