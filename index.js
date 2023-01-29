@@ -7,6 +7,8 @@ const mime = require('mime-types');
 const fs = require('fs');
 const ejs = require("ejs");
 const app = express();
+const path = require('path');
+
 
 app.use(express.static("public"));
 app.set('view engine', 'ejs');
@@ -38,7 +40,6 @@ passport.deserializeUser((user, done) => {
 });
 
 /*  Google AUTH  */
-
 const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy;
 
 authUser = (request, accessToken, refreshToken, profile, done) => {
@@ -51,26 +52,55 @@ passport.use(new GoogleStrategy({
     passReqToCallback: true
 }, authUser));
 
-app.get('/auth/google',
-    passport.authenticate('google', { scope: ['profile', 'email'] }));
-
-app.get('/auth/google/callback',
+app.get('/auth/google', function(req, res, next) {
     passport.authenticate('google', {
-        successRedirect: '/success',
-        failureRedirect: '/error',
-    }));
+         scope: ['profile', 'email'] ,
+         state: JSON.stringify({ authType: 'user' , file:'' })
+        })(req, res, next);
+  }); 
+app.get('/auth/google/callback', function(req, res, next) {
+    passport.authenticate('google', function(err, user, info) {
+        if (err) 
+            { return next(err); }
+        if (!user) 
+            { return res.status(302).send({ error: 'Not Authorized' });     }
+      
+        req.logIn(user, function(err) {
+        if (err) 
+            { return next(err); }
+        // Redirect based on the authentication type stored in the session.
+        let authType = JSON.parse(req.query.state).authType;
+        if (authType === 'user') 
+        {
+            return res.redirect('/success');
+        } 
+        else if (authType === 'download') 
+        {
+            let file = JSON.parse(req.query.state).file;
+            const dir = `./uploads/${user.id}/`;
+            var fileLocation = path.join(dir, file);
+            if(fs.existsSync(fileLocation)){
+                res.download(fileLocation, file);
+            } else {
+                return next(new Error("Unauthorized"));
+            }
+        }
+    });
+    })(req, res, next);
+});
 
 checkAuthenticated = (req, res, next) => {
     if (req.isAuthenticated()) { return next() }
     res.redirect('/')
 }
 app.get('/', (req, res) => {
-    res.render('auth');
+    return res.render('auth');
 });
 
 app.get('/success', checkAuthenticated, async (req, res) => {
     if (!req.session.user) {
-        req.session.user = { id: req.user.id ,name: req.user.displayName, email: req.user.emails[0].value, errorMessage: '' };
+        req.session.user = { id: req.user.id ,name: req.user.displayName,email: req.user.emails[0].value, errorMessage: '' };
+        req.session.authType = 'user';
     }
     if (!fs.existsSync("./uploads")) {
         fs.mkdirSync("./uploads");
@@ -135,27 +165,27 @@ app.post('/upload', function (req, res) {
 
         if (err) {
             req.session.user.errorMessage = err.message;
-        }
+            return res.status(200).redirect("/success");
 
+        }
         // Everything went fine.
-        res.redirect("/success");
+        return res.redirect("/success");
     })
 });
 
 
+
 //download onclick
-const path = require('path');
-app.get('/download/:file(*)', passport.authenticate('google', { scope: ['profile', 'email'] },{ failureRedirect: '/error' }), async (req, res) => {
-    res.redirect('/error')
-    console.log("hello worldf")
-    var file = req.params.file;
-    const dir = `./uploads/${req.session.user.id}/`;
-    var fileLocation = path.join(dir, file);
-    if(fs.existsSync(fileLocation)){
-        res.download(fileLocation, file);
-    } else {
-        res.status(404).send('File not found');
-    }
+app.get('/download/:file(*)', function(req, res, next) {
+    passport.authenticate('google',{ 
+        scope: ['profile', 'email'],
+        state: JSON.stringify({ authType: 'download' , file: req.params.file})
+    })(req, res, next);
+  });
+
+app.use(function(err, req, res, next) {
+console.error(err.stack);
+res.status(500).send('Something went wrong');
 });
 
 //logout
